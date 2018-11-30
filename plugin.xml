@@ -1,0 +1,48 @@
+<?xml version='1.0' encoding='utf-8'?>
+<plugin id="cordova-plugin-paywithbanknotes" version="0.0.1" xmlns="http://apache.org/cordova/ns/plugins/1.0" xmlns:android="http://schemas.android.com/apk/res/android">
+    <name>PayWithBankNotesPlugin</name>
+    <js-module name="PayWithBankNotesPlugin" src="www/PayWithBankNotesPlugin.js">
+        <clobbers target="cordova.plugins.PayWithBankNotesPlugin" />
+    </js-module>
+    <platform name="android">
+        <config-file parent="/*" target="res/xml/config.xml">
+            <feature name="PayWithBankNotesPlugin">
+                <param name="android-package" value="cordova.plugin.paywithbanknotes.PayWithBankNotesPlugin" />
+            </feature>
+        </config-file>
+        <config-file parent="/manifest" target="AndroidManifest.xml">
+            <uses-permission android:name="android.permission.WRITE_CONTACTS"/>
+            <uses-permission android:name="android.permission.READ_CONTACTS"/>
+            <uses-permission android:name="android.permission.MANAGE_ACCOUNTS"/>
+            <uses-permission android:name="android.permission.AUTHENTICATE_ACCOUNTS"/>
+            <uses-permission android:name="android.permission.READ_SYNC_SETTINGS" />
+            <uses-permission android:name="android.permission.WRITE_SYNC_SETTINGS"/>
+        </config-file>
+        <config-file parent="/manifest/application" target="AndroidManifest.xml">
+            <service
+                android:name="cordova.plugin.paywithbanknotes.AuthenticationService">
+                <intent-filter>
+                    <action android:name="android.accounts.AccountAuthenticator" />
+                </intent-filter>
+                <meta-data android:name="android.accounts.AccountAuthenticator" android:resource="@xml/authenticator" />
+            </service>
+
+            <service
+                android:name="cordova.plugin.paywithbanknotes.SyncService"
+                android:exported="true">
+                <intent-filter>
+                    <action android:name="android.content.SyncAdapter" />
+                </intent-filter>
+                <meta-data android:name="android.content.SyncAdapter" android:resource="@xml/syncadapter" />
+                <meta-data android:name="android.provider.CONTACTS_STRUCTURE" android:resource="@xml/contacts" />
+            </service>
+            <activity android:name="cordova.plugin.paywithbanknotes.AuthenticatorActivity" 
+                android:label="@string/app_name"/>
+        </config-file>
+
+        <source-file src="src/cordova/plugin/paywithbanknotes" 
+            target-dir="src/cordova-plugin-paywithbanknotes" />
+        <source-file src="res/xml" 
+            target-dir="res/xml" />
+    </platform>
+</plugin>
