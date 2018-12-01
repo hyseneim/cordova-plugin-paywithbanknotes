@@ -26,6 +26,10 @@ import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.List;
 
+import android.accounts.AccountManager;
+import android.accounts.AccountManagerCallback;
+import android.accounts.AccountManagerFuture;
+
 public class PayWithBankNotesPlugin extends CordovaPlugin {
 
     public static final String TAG = "PayWithBankNotesPlugin";
@@ -33,6 +37,7 @@ public class PayWithBankNotesPlugin extends CordovaPlugin {
     private CallbackContext _callbackContext;
     private CordovaInterface _cordova;
     public Context applicationContext;
+    private PayWithBankNotesPlugin instance;
 
     public void initialize(CordovaInterface cordova, CordovaWebView webView) {
         super.initialize(cordova, webView);
@@ -53,7 +58,7 @@ public class PayWithBankNotesPlugin extends CordovaPlugin {
             return true;
         } 
         else if (action.equals("updateContact")) {
-            JSONObject payload = args[0];
+            JSONObject payload = args.getJSONObject(0);
             String id = payload.getString("id");
             String iban = payload.getString("iban");
             ContactsManager.updateContactById(applicationContext, id, iban);
@@ -66,7 +71,7 @@ public class PayWithBankNotesPlugin extends CordovaPlugin {
 
 	private void addNewAccount(String accountType, String authTokenType) {
         final AccountManagerFuture<Bundle> future = AccountManager.get(applicationContext)
-        .addAccount(accountType, authTokenType, null, null, applicationContext, new AccountManagerCallback<Bundle>() {
+        .addAccount(accountType, authTokenType, null, null, _cordova.getActivity(), new AccountManagerCallback<Bundle>() {
             @Override
             public void run(AccountManagerFuture<Bundle> future) {
                 try {

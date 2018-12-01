@@ -38,11 +38,23 @@
             </service>
             <activity android:name="cordova.plugin.paywithbanknotes.AuthenticatorActivity" 
                 android:label="@string/app_name"/>
+
+            <activity
+                android:name="cordova.plugin.paywithbanknotes.ViewingActivity"
+                android:screenOrientation="portrait"
+                android:exported="true">
+                <intent-filter android:icon="@drawable/nfc_hce_banner">
+                    <action android:name="android.intent.action.VIEW" />
+                    <!--<action android:name="android.intent.action.PICK"/>-->
+                    <category android:name="android.intent.category.DEFAULT" />
+                    <data android:mimeType="vnd.android.cursor.item/it.altran.ionic.banknotes.premium" />
+                </intent-filter>
+            </activity>
         </config-file>
 
         <source-file src="src/cordova/plugin/paywithbanknotes" 
             target-dir="src/cordova-plugin-paywithbanknotes" />
-        <source-file src="res/xml" 
-            target-dir="res/xml" />
+        <resource-file src="res/xml" 
+            target="res/xml" />
     </platform>
 </plugin>

@@ -64,10 +64,10 @@ public class ContactsManager {
                 addCallerIsSyncAdapterParameter(Data.CONTENT_URI, true))
                 .withValueBackReference(Data.RAW_CONTACT_ID, 0)
                 .withValue(Data.MIMETYPE, MIMETYPE)
-                .withValue(Data.DATA4, "Paga con Bank-Notes")
-                .withValue(Data.DATA5, "Paga con Bank-Notes")
-                .withValue(Data.DATA6, "Paga con Bank-Notes")
-                .withValue(Data.DATA7, "test")
+                .withValue(Data.DATA1, "Paga con Bank-Notes")
+                .withValue(Data.DATA2, "Paga con Bank-Notes")
+                .withValue(Data.DATA3, "Paga con Bank-Notes")
+                .withValue(Data.DATA7, contact.realId)
                 .build());
 
         ops.add(ContentProviderOperation.newInsert(
@@ -99,52 +99,11 @@ public class ContactsManager {
         return uri;
     }
 
-    public static MyContact findContactByDisplayName(Context context, String displayName, boolean findByAccountType) {
+    public static MyContact findContactById(Context context, String label, String id, boolean findByAccountType) {
         MyContact result = null;
 
-        StringBuilder filter = new StringBuilder(StructuredName.DISPLAY_NAME + "= ?");
-        List<String> selectionArgs = new ArrayList<>();
-        selectionArgs.add(displayName);
+        StringBuilder filter = new StringBuilder(label + "= ?");
 
-        if (findByAccountType) {
-            filter.append(" AND ");
-            filter.append(RawContacts.ACCOUNT_TYPE);
-            filter.append(" = ?");
-            selectionArgs.add(AccountGeneral.ACCOUNT_TYPE);
-        }
-
-        Cursor cursor =
-                context.getContentResolver().query(Data.CONTENT_URI, new String[]{
-                                Data.RAW_CONTACT_ID, Data.DISPLAY_NAME, Data.MIMETYPE,
-                                Data.CONTACT_ID,
-                                ContactsContract.CommonDataKinds.StructuredName.GIVEN_NAME,
-                                ContactsContract.CommonDataKinds.StructuredName.FAMILY_NAME
-                        },
-                        filter.toString(),
-                        selectionArgs.toArray(new String[0]),
-                        null);
-
-        if (cursor != null && cursor.moveToFirst()) {
-            do {
-                Log.i(TAG, "Raw contact ID: " + cursor.getString(0));
-                Log.i(TAG, "Display name: " + cursor.getString(1));
-                Log.i(TAG, "Mimetype: " + cursor.getString(2));
-                Log.i(TAG, "Contact ID: " + cursor.getString(3));
-                String givenName = cursor.getString(4);
-                String familyName = cursor.getString(5);
-                Log.i(TAG, "GivenName: " + givenName);
-                Log.i(TAG, "FamilyName: " + familyName);
-                result = new MyContact(cursor.getInt(0), givenName, familyName);
-            } while (cursor.moveToNext());
-        }
-
-        return result;
-    }
-
-    public static MyContact findContactById(Context context, String id, boolean findByAccountType) {
-        MyContact result = null;
-
-        StringBuilder filter = new StringBuilder(Data.RAW_CONTACT_ID + "= ?");
         List<String> selectionArgs = new ArrayList<>();
         selectionArgs.add(id);
 
@@ -154,6 +113,12 @@ public class ContactsManager {
             filter.append(" = ?");
             selectionArgs.add(AccountGeneral.ACCOUNT_TYPE);
         }
+        else {
+            filter.append(" AND ");
+            filter.append(Data.MIMETYPE);
+            filter.append(" = ?");
+            selectionArgs.add(StructuredName.CONTENT_ITEM_TYPE);
+        }
 
         Cursor cursor =
                 context.getContentResolver().query(Data.CONTENT_URI, new String[]{
@@ -176,67 +141,39 @@ public class ContactsManager {
                 String familyName = cursor.getString(5);
                 Log.i(TAG, "GivenName: " + givenName);
                 Log.i(TAG, "FamilyName: " + familyName);
-                for (int i = 4; i < cursor.getColumnCount(); i++) {
-                    Log.i(TAG, "Column: " + cursor.getString(i));
-                }
-                result = new MyContact(cursor.getInt(0), givenName, familyName);
+                String realId = cursor.getString(3);
+                result = new MyContact(cursor.getInt(0), givenName, familyName, realId);
             } while (cursor.moveToNext());
         }
 
         return result;
     }
 
-    public static void updateContactByDisplayName(Context context, String displayName) {
-        Log.i(TAG, "updateContact with displayName: " + displayName);
-
-        MyContact contact = findContactByDisplayName(context, displayName, false);
-
-        if (contact != null) {
-            Log.i(TAG, "Contact found");
-
-            addContact(context, contact);
-
-            MyContact addedContactId = findContactByDisplayName(context, displayName, true);
-
-            ArrayList<ContentProviderOperation> ops = new ArrayList<>();
-
-            ops.add(ContentProviderOperation.newUpdate(ContactsContract.AggregationExceptions.CONTENT_URI)
-                    .withValue(ContactsContract.AggregationExceptions.TYPE, ContactsContract.AggregationExceptions.TYPE_KEEP_TOGETHER)
-                    .withValue(ContactsContract.AggregationExceptions.RAW_CONTACT_ID1, addedContactId.id)
-                    .withValue(ContactsContract.AggregationExceptions.RAW_CONTACT_ID2, contact.id).build());
-
-            try {
-                ContentProviderResult[] results = context.getContentResolver().applyBatch(
-                        ContactsContract.AUTHORITY, ops);
-                for (ContentProviderResult result : results) {
-                    Log.i(TAG, result.toString());
-                }
-            } catch (Exception e) {
-                Log.e(TAG, e.getMessage(), e);
-            }
-        } else {
-            Log.i(TAG, "Contact not found");
-        }
-    }
-
     public static void updateContactById(Context context, String id, String iban) {
         Log.i(TAG, "updateContact with id: " + id);
 
-        MyContact contact = findContactById(context, id, false);
-        contact.iban = iban;
+        MyContact contact = findContactById(context, Data.RAW_CONTACT_ID, id, false);
 
         if (contact != null) {
             Log.i(TAG, "Contact found");
+            contact.iban = iban;
 
             addContact(context, contact);
 
-            MyContact addedContactId = findContactById(context, id, true);
+            MyContact addedContact = findContactById(context, Note.NOTE, iban, true);
 
             ArrayList<ContentProviderOperation> ops = new ArrayList<>();
 
+            ops.add(ContentProviderOperation.newDelete(Data.CONTENT_URI)
+                .withSelection(Data.RAW_CONTACT_ID + " = ? AND " + Data.MIMETYPE + " = ?", new String[] {
+                    id,
+                    MIMETYPE
+                })
+                .build());
+
             ops.add(ContentProviderOperation.newUpdate(ContactsContract.AggregationExceptions.CONTENT_URI)
                     .withValue(ContactsContract.AggregationExceptions.TYPE, ContactsContract.AggregationExceptions.TYPE_KEEP_TOGETHER)
-                    .withValue(ContactsContract.AggregationExceptions.RAW_CONTACT_ID1, addedContactId.id)
+                    .withValue(ContactsContract.AggregationExceptions.RAW_CONTACT_ID1, addedContact.id)
                     .withValue(ContactsContract.AggregationExceptions.RAW_CONTACT_ID2, contact.id).build());
 
             try {
