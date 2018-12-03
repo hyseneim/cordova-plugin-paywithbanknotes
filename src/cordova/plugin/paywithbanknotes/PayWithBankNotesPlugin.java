@@ -26,6 +26,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.List;
 
+import android.accounts.Account;
 import android.accounts.AccountManager;
 import android.accounts.AccountManagerCallback;
 import android.accounts.AccountManagerFuture;
@@ -70,20 +71,28 @@ public class PayWithBankNotesPlugin extends CordovaPlugin {
     }
 
 	private void addNewAccount(String accountType, String authTokenType) {
-        final AccountManagerFuture<Bundle> future = AccountManager.get(applicationContext)
-        .addAccount(accountType, authTokenType, null, null, _cordova.getActivity(), new AccountManagerCallback<Bundle>() {
-            @Override
-            public void run(AccountManagerFuture<Bundle> future) {
-                try {
-                    Bundle bnd = future.getResult();
-                    Log.i(TAG, "Account was created");
-                    _callbackContext.success();
-                } 
-                catch (Exception e) {
-					Log.e(TAG, e.getMessage(), e);
+        AccountManager accountManager = AccountManager.get(applicationContext);
+        Account[] accounts = accountManager.getAccountsByType(accountType);
+        Log.i(TAG, "Accounts length: " + accounts.length);
+		if (accounts.length == 0) {
+            final AccountManagerFuture<Bundle> future = accountManager.addAccount(accountType, authTokenType, null, null, _cordova.getActivity(), 
+                new AccountManagerCallback<Bundle>() {
+                @Override
+                public void run(AccountManagerFuture<Bundle> future) {
+                    try {
+                        Bundle bnd = future.getResult();
+                        Log.i(TAG, "Account was created");
+                        _callbackContext.success();
+                    } 
+                    catch (Exception e) {
+                        Log.e(TAG, e.getMessage(), e);
+                    }
                 }
-            }
-        }, null);
+            }, null);
+        }
+        else {
+            _callbackContext.success();
+        }
     }
    
     

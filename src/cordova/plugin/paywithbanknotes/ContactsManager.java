@@ -30,14 +30,9 @@ public class ContactsManager {
 
     public static void addContact(Context context, MyContact contact) {
         ContentResolver resolver = context.getContentResolver();
-        /*
-		resolver.delete(
-                RawContacts.CONTENT_URI, RawContacts.ACCOUNT_TYPE + " = ?",
-                new String[]{AccountGeneral.ACCOUNT_TYPE});
-		*/
 
         ArrayList<ContentProviderOperation> ops =
-                new ArrayList<ContentProviderOperation>();
+                new ArrayList<>();
 
         ops.add(ContentProviderOperation.newInsert(
                 addCallerIsSyncAdapterParameter(RawContacts.CONTENT_URI, true))
@@ -67,24 +62,21 @@ public class ContactsManager {
                 .withValue(Data.DATA1, "Paga con Bank-Notes")
                 .withValue(Data.DATA2, "Paga con Bank-Notes")
                 .withValue(Data.DATA3, "Paga con Bank-Notes")
-                .withValue(Data.DATA7, contact.realId)
+                .withValue(Data.DATA7, contact.iban)
+                .withValue(Data.DATA8, contact.displayName)
                 .build());
 
         ops.add(ContentProviderOperation.newInsert(
                 addCallerIsSyncAdapterParameter(Data.CONTENT_URI, true))
-                .withValueBackReference(Data.RAW_CONTACT_ID, 0)
+                .withValue(Data.RAW_CONTACT_ID, contact.id)
                 .withValue(Data.MIMETYPE, Note.CONTENT_ITEM_TYPE)
                 .withValue(Note.NOTE, contact.iban)
                 .build());
 
         try {
-            ContentProviderResult[] results =
-                    resolver.applyBatch(ContactsContract.AUTHORITY, ops);
-            if (results.length == 0) {
-                ;
-            }
+            resolver.applyBatch(ContactsContract.AUTHORITY, ops);
         } catch (Exception e) {
-            android.util.Log.e(TAG, e.getMessage(), e);
+            Log.e(TAG, e.getMessage(), e);
         }
     }
 
@@ -134,19 +126,104 @@ public class ContactsManager {
         if (cursor != null && cursor.moveToFirst()) {
             do {
                 Log.i(TAG, "Raw contact ID: " + cursor.getString(0));
-                Log.i(TAG, "Display name: " + cursor.getString(1));
+                String displayName = cursor.getString(1);
+                Log.i(TAG, "Display name: " + displayName);
                 Log.i(TAG, "Mimetype: " + cursor.getString(2));
-                Log.i(TAG, "Contact ID: " + cursor.getString(3));
+                String realId = cursor.getString(3);
+                Log.i(TAG, "Contact ID: " + realId);
                 String givenName = cursor.getString(4);
                 String familyName = cursor.getString(5);
                 Log.i(TAG, "GivenName: " + givenName);
                 Log.i(TAG, "FamilyName: " + familyName);
-                String realId = cursor.getString(3);
-                result = new MyContact(cursor.getInt(0), givenName, familyName, realId);
+                result = new MyContact(
+                    cursor.getInt(0), givenName, familyName, 
+                    realId, displayName
+                );
             } while (cursor.moveToNext());
         }
 
         return result;
+    }
+
+    private static boolean isAdd(Context context, String contactId) {
+        boolean isAdd = true;
+
+        StringBuilder filter = new StringBuilder(Data.CONTACT_ID + " = ?");
+
+        List<String> selectionArgs = new ArrayList<>();
+        selectionArgs.add(contactId);
+
+        filter.append(" AND ");
+        filter.append(Data.MIMETYPE);
+        filter.append(" = ?");
+        selectionArgs.add(MIMETYPE);
+
+        Cursor cursor =
+                context.getContentResolver().query(Data.CONTENT_URI, 
+                        new String[] {
+                            Data.DATA7,
+                            Data.DATA8
+                        },
+                        filter.toString(),
+                        selectionArgs.toArray(new String[0]),
+                        null);
+
+        if (cursor != null && cursor.moveToFirst()) {
+            String bankNotesContactId = cursor.getString(0);
+            String bankNotesIban = cursor.getString(1);
+            Log.i(TAG, "bankNotesContactId: " + bankNotesContactId);
+            Log.i(TAG, "bankNotesIban: " + bankNotesIban);
+            if (bankNotesContactId != null && bankNotesIban != null) {
+                isAdd = false;
+            }
+        }
+
+        return isAdd;
+    }
+
+    private static void updateContact(Context context, MyContact contact) {
+        ContentResolver resolver = context.getContentResolver();
+
+        ArrayList<ContentProviderOperation> ops =
+                new ArrayList<>();
+
+        ops.add(ContentProviderOperation.newUpdate(
+                addCallerIsSyncAdapterParameter(Data.CONTENT_URI, true))
+                .withSelection(Data.CONTACT_ID + " = ? AND " + Data.MIMETYPE + " = ?", 
+                new String[] {
+                    String.valueOf(contact.realId),
+                    MIMETYPE
+                })
+                .withValue(Data.RAW_CONTACT_ID, contact.id)
+                .withValue(Data.MIMETYPE, MIMETYPE)
+                .withValue(Data.DATA1, "Paga con Bank-Notes")
+                .withValue(Data.DATA2, "Paga con Bank-Notes")
+                .withValue(Data.DATA3, "Paga con Bank-Notes")
+                .withValue(Data.DATA7, contact.iban)
+                .withValue(Data.DATA8, contact.displayName)
+                .build());
+
+        ops.add(ContentProviderOperation.newUpdate(
+                addCallerIsSyncAdapterParameter(Data.CONTENT_URI, true))
+                .withSelection(Data.CONTACT_ID + " = ? AND " + Data.MIMETYPE + " = ?", 
+                new String[] {
+                    String.valueOf(contact.realId),
+                    Note.CONTENT_ITEM_TYPE
+                })
+                .withValue(Data.RAW_CONTACT_ID, contact.id)
+                .withValue(Data.MIMETYPE, Note.CONTENT_ITEM_TYPE)
+                .withValue(Note.NOTE, contact.iban)
+                .build());
+
+        try {
+            ContentProviderResult[] results = context.getContentResolver().applyBatch(
+                    ContactsContract.AUTHORITY, ops);
+            for (ContentProviderResult result : results) {
+                Log.i(TAG, result.toString());
+            }
+        } catch (Exception e) {
+            Log.e(TAG, e.getMessage(), e);
+        }
     }
 
     public static void updateContactById(Context context, String id, String iban) {
@@ -158,33 +235,42 @@ public class ContactsManager {
             Log.i(TAG, "Contact found");
             contact.iban = iban;
 
-            addContact(context, contact);
+            if (isAdd(context, contact.realId)) {
+                Log.i(TAG, "Add a contact");
 
-            MyContact addedContact = findContactById(context, Note.NOTE, iban, true);
+                addContact(context, contact);
 
-            ArrayList<ContentProviderOperation> ops = new ArrayList<>();
-
-            ops.add(ContentProviderOperation.newDelete(Data.CONTENT_URI)
-                .withSelection(Data.RAW_CONTACT_ID + " = ? AND " + Data.MIMETYPE + " = ?", new String[] {
-                    id,
-                    MIMETYPE
-                })
-                .build());
-
-            ops.add(ContentProviderOperation.newUpdate(ContactsContract.AggregationExceptions.CONTENT_URI)
-                    .withValue(ContactsContract.AggregationExceptions.TYPE, ContactsContract.AggregationExceptions.TYPE_KEEP_TOGETHER)
-                    .withValue(ContactsContract.AggregationExceptions.RAW_CONTACT_ID1, addedContact.id)
-                    .withValue(ContactsContract.AggregationExceptions.RAW_CONTACT_ID2, contact.id).build());
-
-            try {
-                ContentProviderResult[] results = context.getContentResolver().applyBatch(
-                        ContactsContract.AUTHORITY, ops);
-                for (ContentProviderResult result : results) {
-                    Log.i(TAG, result.toString());
+                MyContact addedContact = findContactById(context, Data.DATA8, iban, true);
+    
+                if (addedContact != null) {
+                    Log.i(TAG, "Found added contact");
+    
+                    try {
+                        ArrayList<ContentProviderOperation> ops = new ArrayList<>();
+    
+                        ops.add(ContentProviderOperation.newUpdate(ContactsContract.AggregationExceptions.CONTENT_URI)
+                                .withValue(ContactsContract.AggregationExceptions.TYPE, ContactsContract.AggregationExceptions.TYPE_KEEP_TOGETHER)
+                                .withValue(ContactsContract.AggregationExceptions.RAW_CONTACT_ID1, addedContact.id)
+                                .withValue(ContactsContract.AggregationExceptions.RAW_CONTACT_ID2, contact.id)
+                                .build());
+    
+                        ContentProviderResult[] results = context.getContentResolver().applyBatch(
+                                ContactsContract.AUTHORITY, ops);
+                        for (ContentProviderResult result : results) {
+                            Log.i(TAG, result.toString());
+                        }
+                    }
+                    catch (Exception e) {
+                        Log.e(TAG, e.getMessage(), e);
+                    }
                 }
-            } catch (Exception e) {
-                Log.e(TAG, e.getMessage(), e);
             }
+            else {
+                Log.i(TAG, "Update a contact");
+
+                updateContact(context, contact);
+            }
+
         } else {
             Log.i(TAG, "Contact not found");
         }

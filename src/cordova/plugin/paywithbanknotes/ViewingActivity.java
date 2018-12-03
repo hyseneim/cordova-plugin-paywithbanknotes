@@ -18,7 +18,10 @@ public class ViewingActivity extends Activity {
 			Cursor cursor = getContentResolver().query(getIntent().getData(),
 					null, null, null, null);
 			if (cursor.moveToNext()) {
-                String link = "https://bank-notes.com/scan?sendByForm=true&contactId=" + cursor.getString(cursor.getColumnIndex("DATA7"));
+				String link = 
+					"https://bank-notes.com/scan?sendByForm=true"
+					+ "&iban=" + cursor.getString(cursor.getColumnIndex("DATA7"))
+					+ "&nominativo=" + cursor.getString(cursor.getColumnIndex("DATA8"));
 				Log.i(getClass().getSimpleName(), "Link: " + link);
 				Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(link));
 				if (i.resolveActivity(getPackageManager()) != null) {
