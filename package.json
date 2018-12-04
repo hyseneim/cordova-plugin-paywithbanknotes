@@ -7,9 +7,9 @@
   "_phantomChildren": {},
   "_requested": {
     "type": "git",
-    "raw": "git+https://github.com/hyseneim/cordova-plugin-paywithbanknotes.git",
-    "rawSpec": "git+https://github.com/hyseneim/cordova-plugin-paywithbanknotes.git",
-    "saveSpec": "git+hhttps://github.com/hyseneim/cordova-plugin-paywithbanknotes.git",
+    "raw": "https://github.com/hyseneim/cordova-plugin-paywithbanknotes.git",
+    "rawSpec": "https://github.com/hyseneim/cordova-plugin-paywithbanknotes.git",
+    "saveSpec": "git+https://github.com/hyseneim/cordova-plugin-paywithbanknotes.git",
     "fetchSpec": "https://github.com/hyseneim/cordova-plugin-paywithbanknotes.git",
     "gitCommittish": null
   },
@@ -17,8 +17,8 @@
     "#USER",
     "/"
   ],
-  "_resolved": "git+https://github.com/hyseneim/cordova-plugin-paywithbanknotes#2174148dadf37f945e7cb69ca399dcf17451535d",
-  "_spec": "git+https://github.com/hyseneim/cordova-plugin-paywithbanknotes.git",
+  "_resolved": "git+https://github.com/hyseneim/cordova-plugin-paywithbanknotes.git#b565c248f3d2d5bad53b758a6df0471680020ce9",
+  "_spec": "https://github.com/hyseneim/cordova-plugin-paywithbanknotes.git",
   "_where": "C:\\Git\\Altran\\Bank-Notes\\Ionic\\banknotespremium",
   "author": {
     "name": "@hyseneim"

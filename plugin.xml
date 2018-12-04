@@ -43,7 +43,7 @@
                 android:name="cordova.plugin.paywithbanknotes.ViewingActivity"
                 android:screenOrientation="portrait"
                 android:exported="true">
-                <intent-filter android:icon="@drawable/nfc_hce_banner">
+                <intent-filter android:icon="@drawable/icon">
                     <action android:name="android.intent.action.VIEW" />
                     <!--<action android:name="android.intent.action.PICK"/>-->
                     <category android:name="android.intent.category.DEFAULT" />
